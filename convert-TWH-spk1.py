@@ -22,6 +22,8 @@ from whisper.model import Whisper, ModelDimensions
 from whisper.audio import load_audio, pad_or_trim, log_mel_spectrogram
 from hubert import hubert_model
 import crepe
+from scipy.io.wavfile import write
+
 
 def load_whisper_model(path, device) -> Whisper:
     checkpoint = torch.load(path, map_location="cpu")
@@ -267,20 +269,15 @@ def svc_infer(model, retrieval: IRetrieval, spk, pit, ppg, vec, hp, device):
         out_audio = np.asarray(out_audio)
     return out_audio
 
-def convert_TWH(input_wav: str):
+def convert_TWH(twh_folder: str):
     
     # Fixed
     config = "configs/base.yaml"
-    model_path = "./lesd5_0100.pth" 
+    model_path = "vits_pretrain/lesd5_0100.pth" 
     enable_retrieval = False
     retrieval_index_prefix = ''
     retrieval_ratio =0.5
     n_retrieval_vectors=3
-
-    # SELECT
-    input_wav = 'test.wav'
-    pitch_shift = -7
-    spk_number = 11         # Escolher entre 11 e 20!
 
     # Set Deivce
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -298,57 +295,72 @@ def convert_TWH(input_wav: str):
         hp.data.segment_size // hp.data.hop_length,
         hp)
     load_svc_model(model_path, model)
-
-    # Create Retrieval
-    speaker = "./data_svc_5/singer/" + str(spk_number) + ".spk.npy"
-    retrieval = create_retrival(enable_retrieval, speaker, retrieval_index_prefix, retrieval_ratio, n_retrieval_vectors)
-
     model.eval()
     model.to(device)
+    input_speaker_id = 1     # Can be 1, 4 or 11, must change input folder manually
+    st_inp2out = {"1_to_11": -7.0, "1_to_12": -4.0, "1_to_13": -10.0, "1_to_14": -6.0, "1_to_15": 0.0, "1_to_16": 2.0, "1_to_17": -1.0, "1_to_18": 3.0, "1_to_19": -5.0, "1_to_20": -10.0, "4_to_11": -0.0, "4_to_12": 3.0, "4_to_13": -3.0, "4_to_14": 1.0, "4_to_15": 7.0, "4_to_16": 9.0, "4_to_17": 6.0, "4_to_18": 10.0, "4_to_19": 2.0, "4_to_20": -3.0, "11_to_11": 0.0, "11_to_12": 3.0, "11_to_13": -2.0, "11_to_14": 1.0, "11_to_15": 8.0, "11_to_16": 10.0, "11_to_17": 7.0, "11_to_18": 10.0, "11_to_19": 2.0, "11_to_20": -2.0}
+    genders = ['m_high', 'w_high', 'w_low', 'm_low']
+    speakers = [12, 18, 19, 20]
 
-    # Set Speaker
-    spk = np.load(speaker)
-    spk = torch.FloatTensor(spk)
+    for spk_idx in range(len(speakers)):
 
-    # Infer Whisper
-    ppgPath = "svc_tmp.ppg.npy"
-    pred_ppg(whisper, input_wav, ppgPath, device)
+        spk_number = speakers[spk_idx]
+        speaker = "./data_svc_5/singer/" + str(spk_number) + ".spk.npy"
+        pitch_shift = st_inp2out[str(input_speaker_id)+'_to_'+str(spk_number)]    
+        output_folder = './Unseen-Voices-with-VC/wav_spk1w_ps' + str(int(pitch_shift)) + '_spk' + str(spk_number) + genders[spk_idx] + '/' 
+        tst_audio_names = os.listdir(twh_folder)
+        audios = [os.path.join(twh_folder, item) for item in tst_audio_names]  
 
-    # Load Whisper Out
-    ppg = np.load(ppgPath)
-    ppg = np.repeat(ppg, 2, 0)  # 320 PPG -> 160 * 2
-    ppg = torch.FloatTensor(ppg)
+        for idx in tqdm(range(len(audios))):
+            input_wav = audios[idx]
+            retrieval = create_retrival(enable_retrieval, speaker, retrieval_index_prefix, retrieval_ratio, n_retrieval_vectors)
 
-    # Infer Hubert
-    vecPath = "svc_tmp.vec.npy"
-    pred_vec(hubert, input_wav, vecPath, device)
+            # Set Speaker
+            spk = np.load(speaker)
+            spk = torch.FloatTensor(spk)
 
-    # Load Hubert Out
-    vec = np.load(vecPath)
-    vec = np.repeat(vec, 2, 0)  # 320 PPG -> 160 * 2
-    vec = torch.FloatTensor(vec)
+            # Infer Whisper
+            ppgPath = "svc_tmp.ppg.npy"
+            pred_ppg(whisper, input_wav, ppgPath, device)
 
-    # Set and Shift Pitch
-    pitPath = "svc_tmp.pit.csv"
-    pitch = compute_f0_sing(input_wav, device)
-    save_csv_pitch(pitch, pitPath)
-    pit = load_csv_pitch(pitPath)
-    if (pitch_shift == 0):
-        pass
-    else:
-        pit = np.array(pit)
-        source = pit[pit > 0]
-        source_ave = source.mean()
-        source_min = source.min()
-        source_max = source.max()
-        shift = pitch_shift
-        shift = 2 ** (shift / 12)
-        pit = pit * shift
-    pit = torch.FloatTensor(pit)
+            # Load Whisper Out
+            ppg = np.load(ppgPath)
+            ppg = np.repeat(ppg, 2, 0)  # 320 PPG -> 160 * 2
+            ppg = torch.FloatTensor(ppg)
 
-    out_audio = svc_infer(model, retrieval, spk, pit, ppg, vec, hp, device)
-    print('ok')
-    return out_audio
+            # Infer Hubert
+            vecPath = "svc_tmp.vec.npy"
+            pred_vec(hubert, input_wav, vecPath, device)
+
+            # Load Hubert Out
+            vec = np.load(vecPath)
+            vec = np.repeat(vec, 2, 0)  # 320 PPG -> 160 * 2
+            vec = torch.FloatTensor(vec)
+
+            # Set and Shift Pitch
+            pitPath = "svc_tmp.pit.csv"
+            pitch = compute_f0_sing(input_wav, device)
+            save_csv_pitch(pitch, pitPath)
+            pit = load_csv_pitch(pitPath)
+            if (pitch_shift == 0):
+                pass
+            else:
+                pit = np.array(pit)
+                source = pit[pit > 0]
+                source_ave = source.mean()
+                source_min = source.min()
+                source_max = source.max()
+                shift = pitch_shift
+                shift = 2 ** (shift / 12)
+                pit = pit * shift
+            pit = torch.FloatTensor(pit)
+
+            out_audio = svc_infer(model, retrieval, spk, pit, ppg, vec, hp, device)
+            output_path = output_folder + tst_audio_names[idx][:-4] + '_ps_' + str(int(pitch_shift)) + '_spk_' + str(spk_number) + '.wav'
+            os.makedirs(os.path.dirname(output_path), exist_ok=True)
+            write(output_path, 32000, out_audio)
+
+    return None
 
 def main():
     parser = argparse.ArgumentParser()
