@@ -18,8 +18,8 @@
    
 7. Download trained model [lesd5_100.pretrain.pth](https://drive.google.com/file/d/1hvA3GEsufVUnX5gmGof_cSqbmQmgfV4i/view?usp=sharing), and put it into `vits_pretrain/`.
 
-8. Run Benchmarking-SGDD Script 
+8. Make sure you have downloaded the wav_spk_1 folder from the [Benchmarking-SGDD repository](https://github.com/AI-Unicamp/Benchmarking-SDGG-Models). Then, run the script.
 ```shell
 python convert-TWH-spk1.py /path/to/wav_spk_1
 ```
-The output will be a folder containing all conversions. The same that is found on this [google drive](https://drive.google.com/drive/folders/1MkpCmmM0C9dyS5w7wQXKg71UTUPhqbvO).
+The output will be a folder containing all conversions used on the evaluation. The same that is found on this [google drive](https://drive.google.com/drive/folders/1MkpCmmM0C9dyS5w7wQXKg71UTUPhqbvO).
