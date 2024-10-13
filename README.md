@@ -22,4 +22,4 @@
 ```shell
 python convert-TWH-spk1.py /path/to/wav_spk_1
 ```
-The output will be a folder containing all conversion. The same that is found on this [google drive.](https://drive.google.com/drive/folders/1MkpCmmM0C9dyS5w7wQXKg71UTUPhqbvO).
+The output will be a folder containing all conversions. The same that is found on this [google drive](https://drive.google.com/drive/folders/1MkpCmmM0C9dyS5w7wQXKg71UTUPhqbvO).
