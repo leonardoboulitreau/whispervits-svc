@@ -17,7 +17,4 @@
 
    **Note: crepe full.pth is 84.9 MB, not 6kb**
    
-7. Download pretrain model [sovits5.0.pretrain.pth](https://github.com/PlayVoice/so-vits-svc-5.0/releases/tag/5.0/), and put it into `vits_pretrain/`.
-    ```shell
-    python svc_inference.py --config configs/base.yaml --model ./vits_pretrain/sovits5.0.pretrain.pth --spk ./configs/singers/singer0001.npy --wave test.wav
-    ```
+7. Download trained model [lesd5_100.pretrain.pth](https://drive.google.com/file/d/1hvA3GEsufVUnX5gmGof_cSqbmQmgfV4i/view?usp=sharing), and put it into `vits_pretrain/`.
