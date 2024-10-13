@@ -1,4 +1,5 @@
-## Setup Environment
+# Setup Environment
+(Tested on a Quadro RTX 5000 with NVIDIA-SMI Driver Version: 535.104.05, CUDA Version: 12.2 on a UBUNTU 22.04)
 
 1. Install [PyTorch](https://pytorch.org/get-started/locally/).
 
